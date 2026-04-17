@@ -30,6 +30,7 @@ jobs:
       umbracoCloudApiKey: ${{ secrets.UMBRACO_CLOUD_API_KEY }}
       deployApiKey: ${{ secrets.UMBRACO_DEPLOY_API_KEY }}
       identityClientSecret: ${{ secrets.UMBRACO_IDENTITY_CLIENT_SECRET }}
+      imagingHmacSecretKey: ${{ secrets.UMBRACO_IMAGING_HMAC_SECRET_KEY }}
 
   # Deploy to Umbraco Cloud
   # ####

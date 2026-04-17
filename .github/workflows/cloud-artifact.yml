@@ -15,6 +15,8 @@ on:
         required: true
       identityClientSecret:
         required: true
+      imagingHmacSecretKey:
+        required: true
     outputs:
       artifactId:
         description: 'The Id of the uploaded artifact'
@@ -31,29 +33,34 @@ jobs:
         with:
           ref: ${{ inputs.newSha }}
 
-      # Inject secrets into umbraco-cloud.json before packaging.
-      # The repo stores __PLACEHOLDERS__; real values come from GitHub Actions secrets
-      # so the source tree stays free of secrets while the shipped artifact is complete.
-      - name: Inject secrets into umbraco-cloud.json
+      # Inject secrets into umbraco-cloud.json and appsettings.json before packaging.
+      # The repo omits these keys entirely (they'd otherwise override local env
+      # vars, because Umbraco loads these files as config sources AFTER env vars).
+      # Real values come from GitHub Actions secrets and are written in here.
+      - name: Inject secrets into config files
         env:
           DEPLOY_API_KEY: ${{ secrets.deployApiKey }}
           IDENTITY_CLIENT_SECRET: ${{ secrets.identityClientSecret }}
+          IMAGING_HMAC_SECRET_KEY: ${{ secrets.imagingHmacSecretKey }}
         run: |
-          file="src/UmbracoProject/umbraco-cloud.json"
           python3 - <<'PY'
-          import json, os, sys
-          path = "src/UmbracoProject/umbraco-cloud.json"
-          with open(path, "r", encoding="utf-8") as f:
-              data = json.load(f)
-          data["Deploy"]["Settings"]["ApiKey"] = os.environ["DEPLOY_API_KEY"]
-          data["Identity"]["ClientSecret"] = os.environ["IDENTITY_CLIENT_SECRET"]
-          with open(path, "w", encoding="utf-8") as f:
-              json.dump(data, f, indent=2)
+          import json, os
+
+          cloud_path = "src/UmbracoProject/umbraco-cloud.json"
+          with open(cloud_path, "r", encoding="utf-8") as f:
+              cloud = json.load(f)
+          cloud.setdefault("Deploy", {}).setdefault("Settings", {})["ApiKey"] = os.environ["DEPLOY_API_KEY"]
+          cloud.setdefault("Identity", {})["ClientSecret"] = os.environ["IDENTITY_CLIENT_SECRET"]
+          with open(cloud_path, "w", encoding="utf-8") as f:
+              json.dump(cloud, f, indent=2)
+
+          app_path = "src/UmbracoProject/appsettings.json"
+          with open(app_path, "r", encoding="utf-8") as f:
+              app = json.load(f)
+          app.setdefault("Umbraco", {}).setdefault("CMS", {}).setdefault("Imaging", {})["HMACSecretKey"] = os.environ["IMAGING_HMAC_SECRET_KEY"]
+          with open(app_path, "w", encoding="utf-8") as f:
+              json.dump(app, f, indent=2)
           PY
-          if grep -q "__UMBRACO_DEPLOY_API_KEY__\|__UMBRACO_IDENTITY_CLIENT_SECRET__" "$file"; then
-            echo "::error::Secret placeholder still present in $file after injection"
-            exit 1
-          fi
         shell: bash
 
       # switch the gitignore files so cloud does not ignore the build frontend assets

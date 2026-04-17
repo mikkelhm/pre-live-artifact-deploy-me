@@ -20,14 +20,11 @@
         }
       ]
     },
-    "Settings": {
-      "ApiKey": "__UMBRACO_DEPLOY_API_KEY__"
-    }
+    "Settings": {}
   },
   "Identity": {
     "AadInstancePath": "https://identity-dev.umbraco.com",
     "ClientId": "436cf11f-59eb-41c8-90c8-91f172386942",
-    "ClientSecret": "__UMBRACO_IDENTITY_CLIENT_SECRET__",
     "EnvironmentId": "8fb9ef08-dd79-413f-aaf9-89f35b1f5662",
     "LocalLoginRedirectUri": "https://redirect.identity-dev.umbraco.com",
     "Tenant": "umbracoiddev.onmicrosoft.com",
