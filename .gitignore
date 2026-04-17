@@ -415,3 +415,6 @@ healthchecksdb
 **/Views/Partials/Forms/Themes/bootstrap3-horizontal/
 **/Views/Partials/Forms/Themes/default/
 **/git-patch.diff
+
+# Local dev environment variables (may contain secrets)
+**/Properties/launchSettings.json

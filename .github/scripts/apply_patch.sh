@@ -36,21 +36,28 @@ if git apply "$patchFile" --ignore-space-change --ignore-whitespace --check; the
     if [[ "$pipelineVendor" == "GITHUB" ]]; then
         # Scrub secrets so the commit pushed back to the (public) repo
         # never contains real secret values. We delete the keys entirely
-        # because Umbraco loads umbraco-cloud.json as a config source AFTER
-        # env vars, so any present JSON value wins over env var overrides.
-        cloudJson="src/UmbracoProject/umbraco-cloud.json"
-        if [[ -f "$cloudJson" ]]; then
-            python3 - <<PYEOF
-import json
-path = "$cloudJson"
-with open(path, "r", encoding="utf-8") as f:
-    data = json.load(f)
-data.get("Deploy", {}).get("Settings", {}).pop("ApiKey", None)
-data.get("Identity", {}).pop("ClientSecret", None)
-with open(path, "w", encoding="utf-8") as f:
-    json.dump(data, f, indent=2)
+        # because Umbraco loads these files as config sources AFTER env vars,
+        # so any present JSON value wins over env var overrides.
+        python3 - <<'PYEOF'
+import json, os
+
+cloud_path = "src/UmbracoProject/umbraco-cloud.json"
+if os.path.isfile(cloud_path):
+    with open(cloud_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    data.get("Deploy", {}).get("Settings", {}).pop("ApiKey", None)
+    data.get("Identity", {}).pop("ClientSecret", None)
+    with open(cloud_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+app_path = "src/UmbracoProject/appsettings.json"
+if os.path.isfile(app_path):
+    with open(app_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    data.get("Umbraco", {}).get("CMS", {}).get("Imaging", {}).pop("HMACSecretKey", None)
+    with open(app_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
 PYEOF
-        fi
 
         git add *
         git commit -m "Adding cloud changes since deployment $latestDeploymentId [skip ci]"
