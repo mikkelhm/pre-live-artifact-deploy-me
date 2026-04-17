@@ -68,15 +68,17 @@ jobs:
           PY
         shell: bash
 
-      # Publish the site framework-dependent for linux-x64 (Cloud's Azure App
-      # Service Linux). Framework-dependent keeps payload small since the .NET
-      # runtime is already on the server.
+      # Publish the site framework-dependent for win-x64. Umbraco Cloud runs
+      # customer sites on Windows App Service plans (see
+      # Umbraco.Cloud.Hosting/.../AzureWebAppProvisioning.Worker.Service/appsettings.*.json
+      # where every pricing tier sets OperatingSystem=Windows).
+      # Framework-dependent keeps payload small since the runtime is on the server.
       - name: Publish site
         shell: bash
         run: |
           dotnet publish src/UmbracoProject/UmbracoProject.csproj \
             --configuration Release \
-            --runtime linux-x64 \
+            --runtime win-x64 \
             --no-self-contained \
             --output "${{ github.workspace }}/publish" \
             /p:UseAppHost=false
