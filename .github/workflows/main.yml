@@ -28,6 +28,8 @@ jobs:
     secrets:
       projectId: ${{ secrets.PROJECT_ID }}
       umbracoCloudApiKey: ${{ secrets.UMBRACO_CLOUD_API_KEY }}
+      deployApiKey: ${{ secrets.UMBRACO_DEPLOY_API_KEY }}
+      identityClientSecret: ${{ secrets.UMBRACO_IDENTITY_CLIENT_SECRET }}
 
   # Deploy to Umbraco Cloud
   # ####
@@ -41,6 +43,32 @@ jobs:
     with:
       artifactId: ${{ needs.cloud-artifact.outputs.artifactId }}
       targetEnvironmentAlias: ${{ vars.TARGET_ENVIRONMENT_ALIAS }}
+      noBuildAndRestore: "false"
+      skipVersionCheck: "false"
+      skipPreserveUmbracoCloudJson: "false"
+      runSchemaExtraction: "true"
+    secrets:
+      projectId: ${{ secrets.PROJECT_ID }}
+      umbracoCloudApiKey: ${{ secrets.UMBRACO_CLOUD_API_KEY }}
+
+  # Manual gate: promotion to live must be approved in the GitHub Actions UI.
+  # Configure required reviewers on the "live" environment in repo settings.
+  approve-live:
+    name: "Approve Live Promotion"
+    needs: cloud-deployment
+    runs-on: ubuntu-latest
+    environment: live
+    steps:
+      - run: echo "Approved promotion to live."
+
+  # Promote the same artifact built above to the live environment
+  cloud-deployment-live:
+    name: "Deploy to Live"
+    needs: [cloud-artifact, approve-live]
+    uses: ./.github/workflows/cloud-deployment.yml
+    with:
+      artifactId: ${{ needs.cloud-artifact.outputs.artifactId }}
+      targetEnvironmentAlias: "live"
       noBuildAndRestore: "false"
       skipVersionCheck: "false"
       skipPreserveUmbracoCloudJson: "false"
