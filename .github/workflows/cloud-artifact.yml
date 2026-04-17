@@ -32,28 +32,24 @@ jobs:
           ref: ${{ inputs.newSha }}
 
       # Inject secrets into umbraco-cloud.json before packaging.
-      # The repo stores __PLACEHOLDERS__; real values come from GitHub Actions secrets
-      # so the source tree stays free of secrets while the shipped artifact is complete.
+      # The repo omits these keys entirely (they'd otherwise override local env
+      # vars, because Umbraco loads this file as a config source AFTER env vars).
+      # Real values come from GitHub Actions secrets and are written in here.
       - name: Inject secrets into umbraco-cloud.json
         env:
           DEPLOY_API_KEY: ${{ secrets.deployApiKey }}
           IDENTITY_CLIENT_SECRET: ${{ secrets.identityClientSecret }}
         run: |
-          file="src/UmbracoProject/umbraco-cloud.json"
           python3 - <<'PY'
-          import json, os, sys
+          import json, os
           path = "src/UmbracoProject/umbraco-cloud.json"
           with open(path, "r", encoding="utf-8") as f:
               data = json.load(f)
-          data["Deploy"]["Settings"]["ApiKey"] = os.environ["DEPLOY_API_KEY"]
-          data["Identity"]["ClientSecret"] = os.environ["IDENTITY_CLIENT_SECRET"]
+          data.setdefault("Deploy", {}).setdefault("Settings", {})["ApiKey"] = os.environ["DEPLOY_API_KEY"]
+          data.setdefault("Identity", {})["ClientSecret"] = os.environ["IDENTITY_CLIENT_SECRET"]
           with open(path, "w", encoding="utf-8") as f:
               json.dump(data, f, indent=2)
           PY
-          if grep -q "__UMBRACO_DEPLOY_API_KEY__\|__UMBRACO_IDENTITY_CLIENT_SECRET__" "$file"; then
-            echo "::error::Secret placeholder still present in $file after injection"
-            exit 1
-          fi
         shell: bash
 
       # switch the gitignore files so cloud does not ignore the build frontend assets

@@ -35,8 +35,9 @@ if git apply "$patchFile" --ignore-space-change --ignore-whitespace --check; the
     ## Write the updated Sha to the pipelines variables for use in a later step
     if [[ "$pipelineVendor" == "GITHUB" ]]; then
         # Scrub secrets so the commit pushed back to the (public) repo
-        # never contains real secret values — Cloud's copy of umbraco-cloud.json
-        # has the injected values, and patches may carry them in.
+        # never contains real secret values. We delete the keys entirely
+        # because Umbraco loads umbraco-cloud.json as a config source AFTER
+        # env vars, so any present JSON value wins over env var overrides.
         cloudJson="src/UmbracoProject/umbraco-cloud.json"
         if [[ -f "$cloudJson" ]]; then
             python3 - <<PYEOF
@@ -44,8 +45,8 @@ import json
 path = "$cloudJson"
 with open(path, "r", encoding="utf-8") as f:
     data = json.load(f)
-data.setdefault("Deploy", {}).setdefault("Settings", {})["ApiKey"] = "__UMBRACO_DEPLOY_API_KEY__"
-data.setdefault("Identity", {})["ClientSecret"] = "__UMBRACO_IDENTITY_CLIENT_SECRET__"
+data.get("Deploy", {}).get("Settings", {}).pop("ApiKey", None)
+data.get("Identity", {}).pop("ClientSecret", None)
 with open(path, "w", encoding="utf-8") as f:
     json.dump(data, f, indent=2)
 PYEOF
