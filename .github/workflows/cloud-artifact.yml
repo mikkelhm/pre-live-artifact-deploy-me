@@ -68,15 +68,31 @@ jobs:
           PY
         shell: bash
 
-      # Publish the site as a self-contained artifact. Cloud will zip-deploy this
-      # directly to Kudu instead of rebuilding from source.
+      # Publish the site framework-dependent for linux-x64 (Cloud's Azure App
+      # Service Linux). Framework-dependent keeps payload small since the .NET
+      # runtime is already on the server.
       - name: Publish site
         shell: bash
         run: |
           dotnet publish src/UmbracoProject/UmbracoProject.csproj \
             --configuration Release \
+            --runtime linux-x64 \
+            --no-self-contained \
             --output "${{ github.workspace }}/publish" \
             /p:UseAppHost=false
+
+      # Trim satellite resource assemblies for locales we don't serve — each
+      # locale folder ships ~1MB of .resources.dll assemblies. Keeps default (en).
+      - name: Trim unused locale satellites
+        shell: bash
+        run: |
+          cd "${{ github.workspace }}/publish"
+          # .NET puts satellite assemblies in two-letter / BCP-47 locale folders.
+          for d in cs de es fr it ja ko pl pt-BR ru tr zh-Hans zh-Hant; do
+            rm -rf "$d"
+          done
+          echo "Publish size after trim:"
+          du -sh .
 
       # Zip the publish output for upload.
       - name: Zip publish output
@@ -84,6 +100,7 @@ jobs:
         run: |
           cd "${{ github.workspace }}/publish"
           zip -r "${{ github.workspace }}/sources.zip" .
+          ls -lh "${{ github.workspace }}/sources.zip"
 
       # store artifact for easy debug if needed
       - name: Store artifact in pipeline
