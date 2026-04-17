@@ -1,7 +1,17 @@
 {
   "Deploy": {
     "Project": {
-      "Workspaces": []
+      "Name": "artifact deploy me",
+      "Alias": "artifact-deploy-me",
+      "Id": "74d047dc-7acc-4fa1-b03f-2887c4016709",
+      "Workspaces": [
+        {
+          "Id": "8fb9ef08-dd79-413f-aaf9-89f35b1f5662",
+          "Name": "Live",
+          "Type": "live",
+          "Url": "https://artifact-deploy-me.euwest01.rainbowsrock.net"
+        }
+      ]
     },
     "Settings": {}
   },
