@@ -8,23 +8,10 @@ on:
   workflow_dispatch: # Allow manual triggering of the workflow
 
 jobs:
-  # Get changes from cloud
-  cloud-sync:
-    name: "Umbraco Cloud Sync"
-    uses: ./.github/workflows/cloud-sync.yml
-    secrets:
-      projectId: ${{ secrets.PROJECT_ID }}
-      umbracoCloudApiKey: ${{ secrets.UMBRACO_CLOUD_API_KEY }}
-    with:
-      targetEnvironmentAlias: ${{ vars.TARGET_ENVIRONMENT_ALIAS }}
-
   # Pack and upload the deployment Artifact
   cloud-artifact:
     name: "Prepare and Upload Artifact"
     uses: ./.github/workflows/cloud-artifact.yml
-    needs: cloud-sync
-    with:
-      newSha: ${{ needs.cloud-sync.outputs.newSha }}
     secrets:
       projectId: ${{ secrets.PROJECT_ID }}
       umbracoCloudApiKey: ${{ secrets.UMBRACO_CLOUD_API_KEY }}

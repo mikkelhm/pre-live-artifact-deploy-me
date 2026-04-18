@@ -2,10 +2,6 @@ name: Prepare and Upload Artifact
 
 on:
   workflow_call:
-    inputs:
-      newSha:
-        required: false
-        type: string
     secrets:
       projectId:
         required: true
@@ -30,8 +26,6 @@ jobs:
       artifactId: ${{ steps.upload-artifact.outputs.artifactId }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.newSha }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
