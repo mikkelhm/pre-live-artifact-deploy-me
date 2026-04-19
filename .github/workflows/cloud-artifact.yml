@@ -63,20 +63,32 @@ jobs:
           $app.Umbraco.CMS.Imaging | Add-Member -NotePropertyName HMACSecretKey -NotePropertyValue $env:IMAGING_HMAC_SECRET_KEY -Force
           $app | ConvertTo-Json -Depth 10 | Set-Content $appPath -Encoding utf8
 
-      # Publish the site framework-dependent for win-x64. Umbraco Cloud runs
-      # customer sites on Windows App Service plans (see
-      # Umbraco.Cloud.Hosting/.../AzureWebAppProvisioning.Worker.Service/appsettings.*.json
-      # where every pricing tier sets OperatingSystem=Windows).
-      # Framework-dependent keeps payload small since the runtime is on the server.
+      # Portable publish — no --runtime flag so output matches what Umbraco
+      # Cloud's git-deploy used to produce on its Windows servers. A RID-
+      # specific publish (-r win-x64) gave a layout where SqlClientFactory
+      # came back null at startup on Cloud App Service even though the DLLs
+      # were all present. Portable also makes the publish OS-agnostic.
       - name: Publish site
         shell: pwsh
         run: |
           dotnet publish src/UmbracoProject/UmbracoProject.csproj `
             --configuration Release `
-            --runtime win-x64 `
-            --no-self-contained `
             --output "${{ github.workspace }}/publish" `
             /p:UseAppHost=false
+
+      # Enable stdout logging in web.config so any startup crash writes to
+      # site/wwwroot/logs/stdout_*.log (visible in Kudu). ANCM only dumps
+      # this once at process startup, which is exactly when we crashed.
+      - name: Enable stdout logging in web.config
+        shell: pwsh
+        run: |
+          $cfg = "${{ github.workspace }}/publish/web.config"
+          [xml]$doc = Get-Content $cfg
+          $ancm = $doc.configuration.location.'system.webServer'.aspNetCore
+          $ancm.stdoutLogEnabled = "true"
+          $doc.Save($cfg)
+          Write-Host "--- web.config ---"
+          Get-Content $cfg
 
       # Trim satellite resource assemblies for locales we don't serve — each
       # locale folder ships ~1MB of .resources.dll assemblies. Keeps default (en).
