@@ -33,6 +33,8 @@ url="$baseUrl/v2/projects/$projectId/deployments/artifacts"
 function call_api {
   response=$(curl -s -w "%{http_code}" -X POST $url \
     -H "Umbraco-Cloud-Api-Key: $apiKey" \
+    -H "User-Agent: umbraco-cloud-cicd-github-actions" \
+    -H "Expect:" \
     -F "file=@$filePath" \
     -F "description=$description" \
     -F "version=$version")

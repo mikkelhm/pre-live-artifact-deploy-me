@@ -15,10 +15,22 @@
     <PackageReference Include="Umbraco.Deploy.Cloud" Version="17.0.2" />
     <PackageReference Include="Umbraco.Forms" Version="17.2.1" />
     <PackageReference Include="Umbraco.Forms.Deploy" Version="17.0.0" />
+
+    <!-- Pin SqlClient to the first version officially tested against .NET 10.
+         Transitive 6.1.1 (via NPoco.SqlServer) leaves SqlClientFactory.Instance
+         null on Cloud App Service; see dotnet/SqlClient#4081. -->
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\UmbracoProject.Models\UmbracoProject.Models.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="umbraco-cloud.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

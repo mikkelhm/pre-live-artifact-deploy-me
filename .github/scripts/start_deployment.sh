@@ -13,7 +13,11 @@ runSchemaExtraction="${9:-true}"
 pipelineVendor="${10}"
 
 # Not required, defaults to https://api.dev-cloud.umbraco.com
-baseUrl="${11:-https://api.dev-cloud.umbraco.com}" 
+baseUrl="${11:-https://api.dev-cloud.umbraco.com}"
+
+# Optional — identifies the container image used to execute the deployment on Cloud.
+# Required when deploying a pre-built publish artifact (zip-deploy flow).
+dockerImageTag="${12:-}"
 
 
 ### Endpoint docs
@@ -27,16 +31,36 @@ function call_api {
   echo " - targetEnvironmentAlias: $targetEnvironmentAlias"
   echo " - artifactId: $artifactId"
   echo " - commitMessage: $commitMessage"
-  echo " - skipPreserveUmbracoCloudJson: $skipPreserveUmbracoCloudJson" 
+  echo " - skipPreserveUmbracoCloudJson: $skipPreserveUmbracoCloudJson"
   echo " - noBuildAndRestore: $noBuildAndRestore"
   echo " - skipVersionCheck: $skipVersionCheck"
   echo " - runSchemaExtraction: $runSchemaExtraction"
-  
+  echo " - dockerImageTag: $dockerImageTag"
+
+  body=$(jq -n \
+    --arg targetEnvironmentAlias "$targetEnvironmentAlias" \
+    --arg artifactId "$artifactId" \
+    --arg commitMessage "$commitMessage" \
+    --arg dockerImageTag "$dockerImageTag" \
+    --argjson noBuildAndRestore "$noBuildAndRestore" \
+    --argjson skipVersionCheck "$skipVersionCheck" \
+    --argjson runSchemaExtraction "$runSchemaExtraction" \
+    --argjson skipPreserveUmbracoCloudJson "$skipPreserveUmbracoCloudJson" \
+    '{
+      targetEnvironmentAlias: $targetEnvironmentAlias,
+      artifactId: $artifactId,
+      commitMessage: $commitMessage,
+      noBuildAndRestore: $noBuildAndRestore,
+      skipVersionCheck: $skipVersionCheck,
+      runSchemaExtraction: $runSchemaExtraction,
+      skipPreserveUmbracoCloudJson: $skipPreserveUmbracoCloudJson,
+      dockerImageTag: $dockerImageTag
+    }')
 
   response=$(curl -s -w "%{http_code}" -X POST $url \
     -H "Umbraco-Cloud-Api-Key: $apiKey" \
     -H "Content-Type: application/json" \
-    -d "{\"targetEnvironmentAlias\": \"$targetEnvironmentAlias\",\"artifactId\": \"$artifactId\",\"commitMessage\": \"$commitMessage\",\"noBuildAndRestore\": $noBuildAndRestore,\"skipVersionCheck\": $skipVersionCheck,\"runSchemaExtraction\": $runSchemaExtraction,\"skipPreserveUmbracoCloudJson\": $skipPreserveUmbracoCloudJson}")
+    -d "$body")
 
   responseCode=${response: -3}  
   content=${response%???}
