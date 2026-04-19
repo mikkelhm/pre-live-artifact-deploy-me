@@ -63,16 +63,18 @@ jobs:
           $app.Umbraco.CMS.Imaging | Add-Member -NotePropertyName HMACSecretKey -NotePropertyValue $env:IMAGING_HMAC_SECRET_KEY -Force
           $app | ConvertTo-Json -Depth 10 | Set-Content $appPath -Encoding utf8
 
-      # Portable publish — no --runtime flag so output matches what Umbraco
-      # Cloud's git-deploy used to produce on its Windows servers. A RID-
-      # specific publish (-r win-x64) gave a layout where SqlClientFactory
-      # came back null at startup on Cloud App Service even though the DLLs
-      # were all present. Portable also makes the publish OS-agnostic.
+      # Publish framework-dependent for win-x64 (Cloud runs on Windows App
+      # Service). Smaller than portable (~72 MB vs ~143 MB) which matters —
+      # Cloudflare returned 413 Payload Too Large on the portable attempt.
+      # SqlClientFactory.Instance=null seen previously on this output is
+      # addressed by pinning Microsoft.Data.SqlClient 7.0 in UmbracoProject.csproj.
       - name: Publish site
         shell: pwsh
         run: |
           dotnet publish src/UmbracoProject/UmbracoProject.csproj `
             --configuration Release `
+            --runtime win-x64 `
+            --no-self-contained `
             --output "${{ github.workspace }}/publish" `
             /p:UseAppHost=false
 
