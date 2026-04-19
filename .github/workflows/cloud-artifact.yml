@@ -21,7 +21,10 @@ on:
 jobs:
   prepareDeployment:
     name: Prepare Artifact to cloud
-    runs-on: ubuntu-latest
+    # Windows runner so the -r win-x64 publish is built in a matching platform
+    # environment. Avoids subtle cross-compile issues (e.g. SqlClient native
+    # pairing) seen when publishing Windows-RID assets from Linux.
+    runs-on: windows-latest
     outputs:
       artifactId: ${{ steps.upload-artifact.outputs.artifactId }}
     steps:
@@ -37,30 +40,28 @@ jobs:
       # vars, because Umbraco loads these files as config sources AFTER env vars).
       # Real values come from GitHub Actions secrets and are written in here.
       - name: Inject secrets into config files
+        shell: pwsh
         env:
           DEPLOY_API_KEY: ${{ secrets.deployApiKey }}
           IDENTITY_CLIENT_SECRET: ${{ secrets.identityClientSecret }}
           IMAGING_HMAC_SECRET_KEY: ${{ secrets.imagingHmacSecretKey }}
         run: |
-          python3 - <<'PY'
-          import json, os
+          $cloudPath = "src/UmbracoProject/umbraco-cloud.json"
+          $cloud = Get-Content $cloudPath -Raw | ConvertFrom-Json
+          if ($null -eq $cloud.Deploy) { $cloud | Add-Member -NotePropertyName Deploy -NotePropertyValue ([ordered]@{}) }
+          if ($null -eq $cloud.Deploy.Settings) { $cloud.Deploy | Add-Member -NotePropertyName Settings -NotePropertyValue ([ordered]@{}) }
+          $cloud.Deploy.Settings | Add-Member -NotePropertyName ApiKey -NotePropertyValue $env:DEPLOY_API_KEY -Force
+          if ($null -eq $cloud.Identity) { $cloud | Add-Member -NotePropertyName Identity -NotePropertyValue ([ordered]@{}) }
+          $cloud.Identity | Add-Member -NotePropertyName ClientSecret -NotePropertyValue $env:IDENTITY_CLIENT_SECRET -Force
+          $cloud | ConvertTo-Json -Depth 10 | Set-Content $cloudPath -Encoding utf8
 
-          cloud_path = "src/UmbracoProject/umbraco-cloud.json"
-          with open(cloud_path, "r", encoding="utf-8") as f:
-              cloud = json.load(f)
-          cloud.setdefault("Deploy", {}).setdefault("Settings", {})["ApiKey"] = os.environ["DEPLOY_API_KEY"]
-          cloud.setdefault("Identity", {})["ClientSecret"] = os.environ["IDENTITY_CLIENT_SECRET"]
-          with open(cloud_path, "w", encoding="utf-8") as f:
-              json.dump(cloud, f, indent=2)
-
-          app_path = "src/UmbracoProject/appsettings.json"
-          with open(app_path, "r", encoding="utf-8") as f:
-              app = json.load(f)
-          app.setdefault("Umbraco", {}).setdefault("CMS", {}).setdefault("Imaging", {})["HMACSecretKey"] = os.environ["IMAGING_HMAC_SECRET_KEY"]
-          with open(app_path, "w", encoding="utf-8") as f:
-              json.dump(app, f, indent=2)
-          PY
-        shell: bash
+          $appPath = "src/UmbracoProject/appsettings.json"
+          $app = Get-Content $appPath -Raw | ConvertFrom-Json
+          if ($null -eq $app.Umbraco) { $app | Add-Member -NotePropertyName Umbraco -NotePropertyValue ([ordered]@{}) }
+          if ($null -eq $app.Umbraco.CMS) { $app.Umbraco | Add-Member -NotePropertyName CMS -NotePropertyValue ([ordered]@{}) }
+          if ($null -eq $app.Umbraco.CMS.Imaging) { $app.Umbraco.CMS | Add-Member -NotePropertyName Imaging -NotePropertyValue ([ordered]@{}) }
+          $app.Umbraco.CMS.Imaging | Add-Member -NotePropertyName HMACSecretKey -NotePropertyValue $env:IMAGING_HMAC_SECRET_KEY -Force
+          $app | ConvertTo-Json -Depth 10 | Set-Content $appPath -Encoding utf8
 
       # Publish the site framework-dependent for win-x64. Umbraco Cloud runs
       # customer sites on Windows App Service plans (see
@@ -68,35 +69,35 @@ jobs:
       # where every pricing tier sets OperatingSystem=Windows).
       # Framework-dependent keeps payload small since the runtime is on the server.
       - name: Publish site
-        shell: bash
+        shell: pwsh
         run: |
-          dotnet publish src/UmbracoProject/UmbracoProject.csproj \
-            --configuration Release \
-            --runtime win-x64 \
-            --no-self-contained \
-            --output "${{ github.workspace }}/publish" \
+          dotnet publish src/UmbracoProject/UmbracoProject.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --no-self-contained `
+            --output "${{ github.workspace }}/publish" `
             /p:UseAppHost=false
 
       # Trim satellite resource assemblies for locales we don't serve — each
       # locale folder ships ~1MB of .resources.dll assemblies. Keeps default (en).
       - name: Trim unused locale satellites
-        shell: bash
+        shell: pwsh
         run: |
-          cd "${{ github.workspace }}/publish"
-          # .NET puts satellite assemblies in two-letter / BCP-47 locale folders.
-          for d in cs de es fr it ja ko pl pt-BR ru tr zh-Hans zh-Hant; do
-            rm -rf "$d"
-          done
-          echo "Publish size after trim:"
-          du -sh .
+          $publish = "${{ github.workspace }}/publish"
+          foreach ($d in 'cs','de','es','fr','it','ja','ko','pl','pt-BR','ru','tr','zh-Hans','zh-Hant') {
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $publish $d)
+          }
+          $sizeMB = [math]::Round((Get-ChildItem $publish -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB, 1)
+          Write-Host "Publish size after trim: $sizeMB MB"
 
       # Zip the publish output for upload.
       - name: Zip publish output
-        shell: bash
+        shell: pwsh
         run: |
-          cd "${{ github.workspace }}/publish"
-          zip -r "${{ github.workspace }}/sources.zip" .
-          ls -lh "${{ github.workspace }}/sources.zip"
+          $zipPath = "${{ github.workspace }}/sources.zip"
+          Compress-Archive -Path "${{ github.workspace }}/publish/*" -DestinationPath $zipPath -Force
+          $sizeMB = [math]::Round((Get-Item $zipPath).Length / 1MB, 1)
+          Write-Host "Zipped artifact: $sizeMB MB"
 
       # store artifact for easy debug if needed
       - name: Store artifact in pipeline
