@@ -416,3 +416,6 @@ healthchecksdb
 **/Views/Partials/Forms/Themes/default/
 # Local dev environment variables (may contain secrets)
 **/Properties/launchSettings.json
+
+# Claude Code assistant context (references internal Cloud paths)
+CLAUDE.md
