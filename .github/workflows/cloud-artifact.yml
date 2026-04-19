@@ -107,15 +107,18 @@ jobs:
           path: ${{ github.workspace }}/sources.zip
           retention-days: 1
 
-      # Upload your zipped artifact
+      # Upload your zipped artifact.
+      # Paths are relative because ${{ github.workspace }} expands to a Windows
+      # path with backslashes, which bash interprets as escape sequences when
+      # unquoted in the folded command.
       - name: Post Zipped Artifact
         id: upload-artifact
         shell: bash
-        run: >
-          bash ${{ github.workspace }}/.github/scripts/upload_artifact.sh
-          ${{ secrets.projectId }}
-          ${{ secrets.umbracoCloudApiKey }}
-          "${{ github.workspace }}/sources.zip"
-          "Artifact for ${{ github.run_number }}"
-          "${{ github.run_number }}"
-          GITHUB
+        run: |
+          bash ./.github/scripts/upload_artifact.sh \
+            "${{ secrets.projectId }}" \
+            "${{ secrets.umbracoCloudApiKey }}" \
+            "./sources.zip" \
+            "Artifact for ${{ github.run_number }}" \
+            "${{ github.run_number }}" \
+            GITHUB
