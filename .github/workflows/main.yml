@@ -33,7 +33,7 @@ jobs:
       targetEnvironmentAlias: ${{ vars.TARGET_ENVIRONMENT_ALIAS }}
       # Shipping a pre-built publish artifact — Cloud skips build/restore.
       noBuildAndRestore: "true"
-      skipVersionCheck: "false"
+      skipVersionCheck: "true"
       skipPreserveUmbracoCloudJson: "false"
       runSchemaExtraction: "true"
       dockerImageTag: "0.3.104-beta"
@@ -61,7 +61,7 @@ jobs:
       targetEnvironmentAlias: "live"
       # Same pre-built artifact is promoted — Cloud skips build/restore.
       noBuildAndRestore: "true"
-      skipVersionCheck: "false"
+      skipVersionCheck: "true"
       skipPreserveUmbracoCloudJson: "false"
       runSchemaExtraction: "true"
       dockerImageTag: "0.3.104-beta"
