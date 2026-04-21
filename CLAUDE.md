@@ -2,7 +2,7 @@
 
 Public repo: [mikkelhm/pre-live-artifact-deploy-me](https://github.com/mikkelhm/pre-live-artifact-deploy-me). Cloned from a dev-tier Umbraco Cloud project (`scm.rainbowsrock.net`, API base `api.dev-cloud.umbraco.com`).
 
-**Purpose:** end-to-end test of the new **zip-deploy update executor** (currently in `Umbraco.Cloud.Deployment` branch `feature/zip-deploy-update-executor`). Zip-deploy scaffolding landed via PR #4 (merged); `main` now pins `dockerImageTag: 0.3.104-beta` for both pre-live and live jobs.
+**Purpose:** end-to-end test of the new **zip-deploy update executor** (currently in `Umbraco.Cloud.Deployment` branch `feature/zip-deploy-update-executor`). Zip-deploy scaffolding landed via PR #4 (merged); `main` now pins `dockerImageTag: 0.3.108-beta` for both pre-live and live jobs.
 
 **Two Cloud environments:** `pre-live` (auto-deploys on push to `main`) and `live` (manually gated by GitHub `environment: live` → Mikkel approves). **No cloud-sync** — GitHub is the source of truth; backoffice schema changes in Cloud don't flow back.
 
@@ -27,7 +27,7 @@ These are **non-negotiable** — confirmed from the Umbraco.Cloud.* source on di
 ## Zip-deploy flow (new)
 
 - Public V2 deployment API: `POST /v2/projects/{projectId}/deployments` — body type `StartProjectDeploymentRequest` at `Umbraco.Cloud.Project\src\Deployment\Deployment.Api.Service\Endpoints\PublicV2\StartProjectDeploymentRequest.cs`.
-- Key new input: `DockerImageTag` (string, optional) — selects the update-executor container image. Prototype values: `0.3.101-beta`, `0.3.104-beta`, `latest-beta`.
+- Key new input: `DockerImageTag` (string, optional) — selects the update-executor container image. Prototype values: `0.3.101-beta`, `0.3.104-beta`, `0.3.108-beta`, `latest-beta`.
 - Artifact upload: `POST /v2/projects/{projectId}/deployments/artifacts` (multipart form: `file`, `description`, `version`).
 - Under the hood: executor zip-deploys to Kudu `api/zipdeploy?isAsync=true` (**merge** deploy, not clean — old files linger).
 - When shipping a pre-built publish, pass `noBuildAndRestore: "true"` to the start-deployment API.
