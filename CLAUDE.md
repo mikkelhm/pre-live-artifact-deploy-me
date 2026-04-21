@@ -2,7 +2,7 @@
 
 Public repo: [mikkelhm/pre-live-artifact-deploy-me](https://github.com/mikkelhm/pre-live-artifact-deploy-me). Cloned from a dev-tier Umbraco Cloud project (`scm.rainbowsrock.net`, API base `api.dev-cloud.umbraco.com`).
 
-**Purpose:** end-to-end test of the new **zip-deploy update executor** (currently in `Umbraco.Cloud.Deployment` branch `feature/zip-deploy-update-executor`). Zip-deploy scaffolding landed via PR #4 (merged); `main` now pins `dockerImageTag: 0.3.108-beta` for both pre-live and live jobs.
+**Purpose:** end-to-end test of the new **zip-deploy update executor** (currently in `Umbraco.Cloud.Deployment` branch `feature/zip-deploy-update-executor`). Zip-deploy scaffolding landed via PR #4 (merged); `main` now pins `dockerImageTag: 0.3.109-beta` for both pre-live and live jobs.
 
 **Two Cloud environments:** `pre-live` (auto-deploys on push to `main`) and `live` (manually gated by GitHub `environment: live` → Mikkel approves). **No cloud-sync** — GitHub is the source of truth; backoffice schema changes in Cloud don't flow back.
 
